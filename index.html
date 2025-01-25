@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>3D Solar System</title>
+  <title>2D Solar System Simulator</title>
   <style>
     body {
       margin: 0;
@@ -16,102 +16,88 @@
   </style>
 </head>
 <body>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r152/three.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/examples/js/controls/OrbitControls.js"></script>
+  <canvas id="solarSystem"></canvas>
   <script>
-    // Scene setup
-    const scene = new THREE.Scene();
+    const canvas = document.getElementById('solarSystem');
+    const ctx = canvas.getContext('2d');
 
-    // Camera setup
-    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
-    camera.position.set(0, 50, 150);
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
 
-    // Renderer setup
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    document.body.appendChild(renderer.domElement);
-
-    // Controls for mouse rotation
-    const controls = new THREE.OrbitControls(camera, renderer.domElement);
-    controls.enableDamping = true;
-    controls.dampingFactor = 0.05;
-
-    // Lighting
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
-    scene.add(ambientLight);
-    const sunLight = new THREE.PointLight(0xffffff, 1.5, 0);
-    sunLight.position.set(0, 0, 0);
-    scene.add(sunLight);
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
 
     // Sun
-    const sunGeometry = new THREE.SphereGeometry(15, 32, 32);
-    const sunMaterial = new THREE.MeshBasicMaterial({ color: 0xffcc00 });
-    const sun = new THREE.Mesh(sunGeometry, sunMaterial);
-    scene.add(sun);
+    const sun = {
+      x: centerX,
+      y: centerY,
+      radius: 50,
+      color: "#ffcc00"
+    };
 
-    // Planet creation function
-    function createPlanet(size, distance, color, orbitSpeed) {
-      const planet = new THREE.Group();
-
-      // Planet sphere
-      const planetGeometry = new THREE.SphereGeometry(size, 32, 32);
-      const planetMaterial = new THREE.MeshStandardMaterial({ color });
-      const planetMesh = new THREE.Mesh(planetGeometry, planetMaterial);
-      planet.add(planetMesh);
-
-      // Orbit ring (for visualization)
-      const orbitGeometry = new THREE.RingGeometry(distance - 0.1, distance + 0.1, 64);
-      const orbitMaterial = new THREE.MeshBasicMaterial({
-        color: 0xffffff,
-        side: THREE.DoubleSide,
-        transparent: true,
-        opacity: 0.3,
-      });
-      const orbit = new THREE.Mesh(orbitGeometry, orbitMaterial);
-      orbit.rotation.x = Math.PI / 2;
-      scene.add(orbit);
-
-      planet.distance = distance;
-      planet.orbitSpeed = orbitSpeed;
-      planetMesh.position.x = distance;
-      scene.add(planet);
-
-      return planet;
-    }
-
-    // Planets
+    // Planets with their properties
     const planets = [
-      createPlanet(3, 25, 0xaaaaaa, 0.02), // Mercury
-      createPlanet(4, 40, 0xff8844, 0.01), // Venus
-      createPlanet(4.5, 60, 0x3366ff, 0.008), // Earth
-      createPlanet(3.8, 80, 0xff4422, 0.006), // Mars
-      createPlanet(10, 120, 0xffcc88, 0.004), // Jupiter
-      createPlanet(8, 160, 0xffaa33, 0.003), // Saturn
-      createPlanet(6, 200, 0x33ccff, 0.002), // Uranus
-      createPlanet(5.5, 240, 0x3366cc, 0.001), // Neptune
+      { radius: 8, distance: 70, color: "#aaaaaa", speed: 0.04, angle: 0 },  // Mercury
+      { radius: 10, distance: 120, color: "#ff8844", speed: 0.02, angle: 0 }, // Venus
+      { radius: 12, distance: 180, color: "#3366ff", speed: 0.015, angle: 0 }, // Earth
+      { radius: 10, distance: 240, color: "#ff4422", speed: 0.012, angle: 0 }, // Mars
+      { radius: 22, distance: 330, color: "#ffcc88", speed: 0.008, angle: 0 }, // Jupiter
+      { radius: 18, distance: 420, color: "#ffaa33", speed: 0.006, angle: 0 }, // Saturn
+      { radius: 14, distance: 500, color: "#33ccff", speed: 0.004, angle: 0 }, // Uranus
+      { radius: 14, distance: 580, color: "#3366cc", speed: 0.002, angle: 0 }, // Neptune
     ];
 
-    // Animation loop
-    function animate() {
-      requestAnimationFrame(animate);
-
-      // Update planets' positions
-      planets.forEach((planet, index) => {
-        planet.rotation.y += 0.02; // Planet rotation
-        const angle = performance.now() * 0.001 * planet.orbitSpeed;
-        planet.position.x = Math.cos(angle) * planet.distance;
-        planet.position.z = Math.sin(angle) * planet.distance;
-      });
-
-      controls.update();
-      renderer.render(scene, camera);
+    // Draw the Sun
+    function drawSun() {
+      ctx.beginPath();
+      ctx.arc(sun.x, sun.y, sun.radius, 0, Math.PI * 2);
+      ctx.fillStyle = sun.color;
+      ctx.shadowBlur = 20;
+      ctx.shadowColor = sun.color;
+      ctx.fill();
+      ctx.closePath();
     }
 
-    // Responsive resizing
+    // Draw a planet
+    function drawPlanet(planet) {
+      const x = sun.x + Math.cos(planet.angle) * planet.distance;
+      const y = sun.y + Math.sin(planet.angle) * planet.distance;
+
+      ctx.beginPath();
+      ctx.arc(x, y, planet.radius, 0, Math.PI * 2);
+      ctx.fillStyle = planet.color;
+      ctx.shadowBlur = 10;
+      ctx.shadowColor = planet.color;
+      ctx.fill();
+      ctx.closePath();
+
+      // Draw orbit
+      ctx.beginPath();
+      ctx.arc(sun.x, sun.y, planet.distance, 0, Math.PI * 2);
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.1)";
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      ctx.closePath();
+    }
+
+    // Animate the Solar System
+    function animate() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      drawSun();
+
+      planets.forEach((planet) => {
+        drawPlanet(planet);
+        planet.angle += planet.speed; // Update the planet's position
+      });
+
+      requestAnimationFrame(animate);
+    }
+
+    // Adjust canvas size on window resize
     window.addEventListener('resize', () => {
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
     });
 
     animate();
